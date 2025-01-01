@@ -1,0 +1,76 @@
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+local Window = OrionLib:MakeWindow({Name = "VOIDSCRIPT", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionMM2Config"})
+
+local mainTab = Window:MakeTab({
+    Name = "Visual Weapons",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local Weapons = require(game:GetService("ReplicatedStorage").Database.Sync.Item)
+
+local function NameMatch(name, search)
+    local sanitizedName = name:gsub("_G_%d%d%d%d", ""):gsub("_K_%d%d%d%d", ""):lower()
+    local sanitizedSearch = search:lower()
+    return sanitizedName:find(sanitizedSearch, 1, true) ~= nil
+end
+
+local WeaponNames = {}
+for WeaponName, _ in pairs(Weapons) do
+    table.insert(WeaponNames, WeaponName)
+end
+
+local fromWeapon = ""
+local toWeapon = ""
+
+mainTab:AddTextbox({
+    Name = "From Weapon",
+    Default = "Put Weapon Name",
+    TextDisappear = false,
+    Callback = function(value)
+        fromWeapon = value
+    end
+})
+
+mainTab:AddDropdown({
+    Name = "To Weapon",
+    Default = "",
+    Options = WeaponNames,
+    Callback = function(value)
+        toWeapon = value
+    end
+})
+
+mainTab:AddButton({
+    Name = "Change",
+    Callback = function()
+        local foundFromWeapons = {}
+        local foundToWeapons = {}
+
+        for WeaponName, _ in pairs(Weapons) do
+            if NameMatch(WeaponName, fromWeapon) then
+                table.insert(foundFromWeapons, WeaponName)
+            end
+            if NameMatch(WeaponName, toWeapon) then
+                table.insert(foundToWeapons, WeaponName)
+            end
+        end
+
+        if #foundFromWeapons > 0 and #foundToWeapons > 0 then
+            for _, foundFromWeapon in ipairs(foundFromWeapons) do
+                for _, foundToWeapon in ipairs(foundToWeapons) do
+                    Weapons[foundFromWeapon] = {}
+
+                    for i, v in pairs(Weapons[foundToWeapon]) do
+                        Weapons[foundFromWeapon][i] = v
+                    end
+                    game:GetService("ReplicatedStorage").Remotes.Inventory.Equip:FireServer(foundToWeapon)
+                end
+            end
+        else
+            print("Weapon NOT FOUND")
+        end
+    end
+})
+
+OrionLib:Init()
